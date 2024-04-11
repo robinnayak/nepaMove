@@ -1,0 +1,12 @@
+
+        -------------------------------------
+        Booking ID: ROHAN_NAYAK1BIRKATABC1234
+        Passenger: rohan_nayak
+        Trip: biratnagar to Kathmandu
+        No. of Passengers: 1
+        Price per Person: 1200.00
+        Total Price: 1200.00
+        Trip Date: 2024-03-28 00:15:00
+        Ticket Booked Time: 2024-03-31 16:40:11
+        -------------------------------------
+    

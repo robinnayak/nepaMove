@@ -18,13 +18,13 @@ Including another URLconf
 from django.urls import path,include
 from . import views
 
-
+app_name="account"
 urlpatterns = [
     path('',views.HomeView.as_view(),name='home'),
     path("register/",views.RegistrationView.as_view(),name="register"),
     path('login/',views.CustomLoginView.as_view(),name='login'),
     path('logout/',views.CustomLogoutView.as_view(),name='logout'),
     path('get-csrf-token/',views.get_csrf_token,name="csrf_token"),
-    path('driver/',include('Driver.urls'))
+    # path('driver/',include('Driver.urls')),
     # path('user/',views.UserView.as_view(),name="user"),
 ]

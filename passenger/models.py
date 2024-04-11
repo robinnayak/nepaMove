@@ -14,6 +14,7 @@ class Passenger(models.Model):
     emergency_contact_number = models.CharField(max_length=10,blank=True)
     date_of_birth = models.DateField(blank=True,null=True)
     preferred_language = models.CharField(max_length=20,choices = CHOICES,blank=True)
+    
     def __str__(self) -> str:
         return self.user.username
 

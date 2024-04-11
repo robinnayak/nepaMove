@@ -1,0 +1,12 @@
+
+        -------------------------------------
+        Booking ID: ROHAN_NAYAK1DHAKATXYZ1234
+        Passenger: rohan_nayak
+        Trip: dharan to kathmandu
+        No. of Passengers: 1
+        Price per Person: 1300.00
+        Total Price: 1300.00
+        Trip Date: 2024-03-28 00:15:00
+        Ticket Booked Time: 2024-03-31 16:35:56
+        -------------------------------------
+    

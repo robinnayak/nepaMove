@@ -1,12 +1,13 @@
 from rest_framework import serializers
-from .models import Driver
+from . import models
 from account.serializers import CustomUserSerializer
-
+from passenger.serializers import PassengerProfileSerializer
+from passenger.models import Passenger
 class DriverProfileSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer(read_only=True)
 
     class Meta:
-        model = Driver
+        model = models.Driver
         fields = ['user', 'license_number', 'phone_number', 'address',
                   'date_of_birth', 'driving_experience', 'rating', 'total_rides',
                   'earnings', 'availability_status', 'last_updated_location']
@@ -37,21 +38,112 @@ class DriverProfileSerializer(serializers.ModelSerializer):
         instance.save()
         return instance 
 
-#alternate 
+class VehicleSerializer(serializers.ModelSerializer):
+    driver = DriverProfileSerializer(read_only=True)
+    class Meta:
+        model = models.Vehicle
+        fields = [
+            'driver',
+            'registration_number',
+            'vehicle_type',
+            'company_made',
+            'model',
+            'age',
+            'color',
+            'seating_capacity',
+            'license_plate_number',
+            'insurance_expiry_date',
+            'fitness_certificate_expiry_date',
+            'image',
+            'available_seat',
+            ]
 
-# def update(self, instance, validated_data):
-#     user_data = validated_data.pop('user', None)
 
-#     if user_data:
-#         user_serializer = CustomUserSerializer(instance.user, data=user_data)
-#         if user_serializer.is_valid():
-#             user_serializer.save()
+class TripSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Trip
+        fields = ['trip_id','from_location','to_location','start_datetime','end_datetime']
 
-#     fields_to_update = ['license_number', 'phone_number', 'address', 'date_of_birth',
-#                         'driving_experience', 'rating', 'total_rides', 'earnings',
-#                         'availability_status']
+class TripPriceSerializer(serializers.ModelSerializer):
+    
+    vehicle = VehicleSerializer(read_only=True)
+    trip = TripSerializer(read_only=True)
+    class Meta:
+        model = models.TripPrice
+        fields = ['trip_price_id','trip','vehicle','price']
+        # exclude= ['vehicle_registration','trip_id']
+    def create(Self, validated_data):
+        # vehicle_registration = validated_data['vehicle_registration']
+        # trip_id = validated_data['trip_id']
+        vehicle_registration = Self.context.get('vehicle_registration')
+        trip_id = Self.context.get('trip_id')
+        # print("trip-id serializer",trip_id)
+        # print("vehicle_registration serializer",vehicle_registration)
+        vehicle = models.Vehicle.objects.get(registration_number=vehicle_registration)
+        trip = models.Trip.objects.get(trip_id=trip_id)
+        # print ("vehicle serializer :",vehicle)
+        # print ("trip serializer :",trip )
+        trip_price = models.TripPrice.objects.create(
+            vehicle=vehicle,
+            trip = trip,
+            **validated_data
+        )
+        return trip_price
+    
+    def update(self, instance, validated_data):
+        vehicle_registration = self.context.get('vehicle_registration')
+        trip_id = self.context.get('trip_id')
+        # print("trip-id serializer",trip_id)
+        # print("vehicle_registration serializer",vehicle_registration)
+        instance.price = validated_data['price']
+        # print("validated price : ",validated_data['price'])
+        # print("instance vehicle registration", instance.trip)
+        if vehicle_registration != instance.vehicle.registration_number:
+            vehicle = models.Vehicle.objects.get(registration_number=vehicle_registration)
+            instance.vehicle = vehicle
+            # print ("instance vehicle", instance.vehicle)
+        if trip_id != instance.trip.trip_id:
+            trip = models.Trip.objects.get(trip_id=trip_id)
+            instance.trip = trip
+        
+        instance.save()
+        return instance
+        
+class BookingSerializer(serializers.ModelSerializer):
+    tripprice = TripPriceSerializer(read_only=True) 
+    passenger = PassengerProfileSerializer(read_only=True)
+    class Meta:
+        model = models.Booking
+        fields = ['booking_id','passenger','tripprice','num_passengers','price']
+        
+    def create(self, validated_data):
+        trip_price_id = self.context.get('trip_price_id')
+        passenger_username = self.context.get('passenger')
+        passenger = Passenger.objects.get(user=passenger_username)
+        trip_price = models.TripPrice.objects.get(trip_price_id=trip_price_id)
+        
+        booking = models.Booking.objects.create(
+            passenger = passenger,
+            tripprice = trip_price,
+            **validated_data,
+        )   
+        
+        return booking 
+   
+    def update(self, instance, validated_data):
+        trip_price_id = self.context.get('trip_price_id')
+        
+        if trip_price_id!=instance.tripprice.trip_price_id:
+            trip_price = models.TripPrice.objects.get(trip_price_id=trip_price_id)
+            instance.tripprice = trip_price
+        
+        if instance.num_passengers != validated_data['num_passengers']:
+            instance.num_passengers = validated_data['num_passengers']
+        instance.save()
+        return instance    
+        
 
-#     for field in fields_to_update:
-#         setattr(instance, field, validated_data.get(field, getattr(instance, field)))
-
-#     return instance
+class TicketSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Ticket
+        fields = ['booking','ticket_file']
