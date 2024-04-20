@@ -9,6 +9,43 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 # Create your models here.
 
+# class VehicleAdmin(models.Model):
+#     count = 1
+#     REGISTRATION_CHOICES = (
+#         ('car', 'Car'),
+#         ('van', 'Van'),
+#         ('motorcycle', 'Motorcycle'),
+#         # Add more vehicle types as needed
+#     )
+
+#     driver = models.ForeignKey(Driver, on_delete=models.CASCADE)  # Link to driver
+#     registration_number = models.CharField(max_length=20, unique=True)
+#     vehicle_type = models.CharField(max_length=10, choices=REGISTRATION_CHOICES)
+#     company_made = models.CharField(max_length=50)
+#     model = models.CharField(max_length=50)
+#     age = models.IntegerField()
+#     color = models.CharField(max_length=30)
+#     seating_capacity = models.PositiveIntegerField(default=0)
+#     license_plate_number = models.CharField(max_length=10, unique=True)
+#     insurance_expiry_date = models.DateField()  # Ensure insurance validity
+#     fitness_certificate_expiry_date = models.DateField()  # Track vehicle fitness
+#     image = models.ImageField(upload_to='vehicle_images', blank=True)  # Optional image
+#     available_seat = models.PositiveIntegerField(default=0)
+
+#     def save(self,*args,**kwargs):
+#         if self.available_seat ==0:
+#             if self.count==1:
+#                 self.available_seat = self.seating_capacity
+#                 self.count = self.count + 1
+#         elif self.available_seat <= 0:
+#             # Raise a ValidationError for not enough available seats
+#             raise serializers.ValidationError("Not enough available seats!!")
+#         super().save(*args,**kwargs)
+            
+#     def __str__(self):
+#         return f"{self.registration_number} - {self.company_made} {self.model}"
+
+
 class Driver(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     license_number = models.CharField(max_length=20,blank=True)
@@ -63,8 +100,8 @@ class Vehicle(models.Model):
     color = models.CharField(max_length=30)
     seating_capacity = models.PositiveIntegerField(default=0)
     license_plate_number = models.CharField(max_length=10, unique=True)
-    insurance_expiry_date = models.DateField()  # Ensure insurance validity
-    fitness_certificate_expiry_date = models.DateField()  # Track vehicle fitness
+    insurance_expiry_date = models.DateField(auto_now_add=True)  # Ensure insurance validity
+    fitness_certificate_expiry_date = models.DateField(auto_now_add=True)  # Track vehicle fitness
     image = models.ImageField(upload_to='vehicle_images', blank=True)  # Optional image
     available_seat = models.PositiveIntegerField(default=0)
 

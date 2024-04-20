@@ -8,7 +8,9 @@ from . import models
 from account.models import CustomUser
 from . import serializers
 from passenger.models import Passenger
+from rest_framework.permissions import IsAuthenticated
 class DriverProfile(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self,request,*args,**kwargs):
         username = kwargs.get('username')
         try:    
@@ -48,10 +50,16 @@ class DriverProfile(APIView):
     
 
 class VehicleView(APIView):
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
         try:
             vehicles = models.Vehicle.objects.all()  # Use plural for clarity
-            serializer = serializers.VehicleSerializer(vehicles, many=True)
+            print("request view user",request.user.username)
+            print("request user",request.user)
+            
+            serializer = serializers.VehicleSerializer(vehicles, many=True,context={
+              "username":request.user.username
+            })
             # print("vehicle data",vehicles)
             # print("serializer data",serializer.data)
             
@@ -60,10 +68,17 @@ class VehicleView(APIView):
             return Response({"error": "No vehicles found"}, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, format=None):
-        serializer = serializers.VehicleSerializer(data=request.data)
+        print("vehicle post request",request.data)
+        serializer = serializers.VehicleSerializer(data=request.data,context={
+            "username":request.user.username
+        })
         if serializer.is_valid():
-            serializer.save()
-            return Response({"msg": "Vehicle created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+            try:
+                vehicle_data = serializer.save()
+                print("vehicle data",vehicle_data)
+                return Response({"msg": "Vehicle created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+            except Exception as err:
+                return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)    
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # class Test(APIView):
@@ -73,10 +88,20 @@ class VehicleView(APIView):
 
    
 class VehicleDetailView(APIView):
-    def get(self,request,*args,**kwargs):
-        license_plate_number = kwargs.get("licence_plate_number")        
-        return Response({"msg":"vehicle detail view","data":license_plate_number})
+    permission_classes=[IsAuthenticated]
     
+    def get(self,request,*args,**kwargs):
+        license_plate_number = kwargs.get("licence_plate_number")  
+        try:
+            vehicles = models.Vehicle.objects.get(license_plate_number=license_plate_number)
+            serializer = serializers.VehicleSerializer(vehicles)
+            return Response({"msg":"vehicle detail view","data":serializer.data})
+        except models.Vehicle.DoesNotExist:
+            return Response({"error":"vehicle not found !!"},status=status.HTTP_404_NOT_FOUND)
+        except Exception as e :
+            error_response = {'error':f'Driver Profile Error: {str(e)}'}
+            return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)      
+
     def put(self,request,*args,**kwargs):
         license_plate_number = kwargs.get("licence_plate_number")
         try:
@@ -105,8 +130,28 @@ class VehicleDetailView(APIView):
         
         vehicle.delete()
         return Response({"message":"Vehicle deleted successfully"},status=status.HTTP_204_NO_CONTENT)     
+
+class VehicleFilterView(APIView):
+    permission_classes=[IsAuthenticated]
+    
+    def get(self,request,*args,**kwargs):
+        username = kwargs.get("username")  
+        print("username",username)
+        try:
+            vehicles = models.Vehicle.objects.filter(driver__user__username = username )
+            No_of_vehicles = vehicles.count()
+            serializer = serializers.VehicleSerializer(vehicles,many=True)
+            return Response({"msg":"vehicle detail view","data":serializer.data, "No_of_vehicles":No_of_vehicles})
+        except models.Vehicle.DoesNotExist:
+            return Response({"error":"vehicle not found !!"},status=status.HTTP_404_NOT_FOUND)
+        except Exception as e :
+            error_response = {'error':f'Driver Profile Error: {str(e)}'}
+            return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)      
+
             
 class TripView(APIView):
+    permission_classes=[IsAuthenticated]
+    
     def get(self, request, *args, **kwargs):
         trips = models.Trip.objects.all()
         serializer = serializers.TripSerializer(trips, many=True)  # Serialize all trips
@@ -130,6 +175,8 @@ class TripView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class TripDetail(APIView):
+    permission_classes=[IsAuthenticated]
+    
     def get(self,request,*args,**kwargs):
         tripid = kwargs.get('tripid')
         
@@ -180,6 +227,8 @@ class TripDetail(APIView):
             
 
 class TripPriceView(APIView):
+    permission_classes=[IsAuthenticated]
+    
     def get(self,request,*args,**kwargs):
         trip_price = models.TripPrice.objects.all()
         serializer = serializers.TripPriceSerializer(trip_price,many=True)
@@ -196,8 +245,10 @@ class TripPriceView(APIView):
             return Response(error_response,status=status.HTTP_400_BAD_REQUEST)
         
     def post(self,request,*args,**kwargs):
-        vehicle_registration= request.data.get('vehicle_registration')
-        trip_id = request.data.get('trip_id')
+        vehicle_registration= request.data.get("vehicle") #need to change 
+        trip_id = request.data.get("trip")
+        print("vehicle_registration",vehicle_registration)
+        print("trip_id",trip_id)
         serializer = serializers.TripPriceSerializer(data=request.data,context={
             "vehicle_registration":vehicle_registration,
             "trip_id" : trip_id
@@ -214,6 +265,8 @@ class TripPriceView(APIView):
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
 class TripPriceDetailView(APIView):
+    permission_classes=[IsAuthenticated]
+    
     def get(self,request,*args,**kwargs):
         trip_price_id = kwargs.get('trip_price_id')
         trip_price = get_object_or_404(models.TripPrice,trip_price_id=trip_price_id)
@@ -257,6 +310,43 @@ class TripPriceDetailView(APIView):
             return Response({"msg":f"trip price with this id {trip_price_id} is deleted successfully!!"}, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response({"err":str(e)},status=status.HTTP_400_BAD_REQUEST)
+
+
+class TripPriceLocationFilter(APIView):
+    permission_classes=[IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            username = request.user.username
+            trip_price = models.TripPrice.objects.filter(vehicle__driver__user__username=username)  # Replace "raya" with the actual username
+            trip_count = trip_price.count()
+            print("trip_count",trip_count)
+            serializer = serializers.TripPriceSerializer(trip_price, many=True)
+            # serializer_count = serializer.data.count()
+            # print("serializer_count",serializer_count)
+            # print("trip_price serializer data",serializer.data)
+            if serializer.data:
+                return Response({"msg": "Trip Price Api for this location","username":username,"data":serializer.data,"count":trip_count}, status=status.HTTP_200_OK) 
+            # print("trip_price",serializers)
+            return Response({"msg": "Trip Price Api for this location","username":username,"data":None}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def post(self,request,*args,**kwargs):
+        from_location = request.data.get('from_location')
+        to_location = request.data.get('to_location')
+        print("request user username",request.user.username)
+        trip_price = models.TripPrice.objects.filter(trip__from_location=from_location,trip__to_location=to_location)
+        # trip_count = models.TripPrice.objects.filter(vehicle__driver__user__username="raya")
+        # print("trip_count",trip_count)
+        serializer = serializers.TripPriceSerializer(trip_price,many=True)
+        if not serializer.data:
+            return Response({"error":f"No trip price found for this location {from_location} to {to_location}"})
+        try:
+            msg = {"msg":f"Trip Price Api for this location {from_location} to {to_location}","data":serializer.data}
+            return Response(msg,status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error":str(e),"serializer_error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
 
 class BookingView(APIView):
     def get(self,request,*args,**kwargs):

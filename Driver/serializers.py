@@ -57,8 +57,19 @@ class VehicleSerializer(serializers.ModelSerializer):
             'image',
             'available_seat',
             ]
-
-
+    # need to add the save method for the vehicle model tomorrow
+    
+    def create(self, validated_data):
+        driver_context = self.context
+        print("driver username",driver_context)
+        driver_username = driver_context.get('username')
+        user = models.CustomUser.objects.get(username=driver_username) 
+        driver = models.Driver.objects.get(user=user)
+        validated_data['driver'] = driver
+        vehicle = models.Vehicle.objects.create(**validated_data)
+        # driver_data = validated_data.pop('driver')
+        # print("driver data",driver_data)    
+        return vehicle
 class TripSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Trip
@@ -72,14 +83,16 @@ class TripPriceSerializer(serializers.ModelSerializer):
         model = models.TripPrice
         fields = ['trip_price_id','trip','vehicle','price']
         # exclude= ['vehicle_registration','trip_id']
+        
+    
     def create(Self, validated_data):
         # vehicle_registration = validated_data['vehicle_registration']
         # trip_id = validated_data['trip_id']
-        vehicle_registration = Self.context.get('vehicle_registration')
+        license_plate_number = Self.context.get('vehicle_registration')
         trip_id = Self.context.get('trip_id')
-        # print("trip-id serializer",trip_id)
-        # print("vehicle_registration serializer",vehicle_registration)
-        vehicle = models.Vehicle.objects.get(registration_number=vehicle_registration)
+        print("trip-id serializer",trip_id)
+        print("vehicle_registration serializer",license_plate_number)
+        vehicle = models.Vehicle.objects.get(license_plate_number=license_plate_number)
         trip = models.Trip.objects.get(trip_id=trip_id)
         # print ("vehicle serializer :",vehicle)
         # print ("trip serializer :",trip )
@@ -147,3 +160,13 @@ class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Ticket
         fields = ['booking','ticket_file']
+        
+        
+#================================optional========================================
+
+# class TripPriceLocationFilterSerializer(serializers.Serializer):
+#     from_location = serializers.CharField()
+#     to_location = serializers.CharField()   
+#     tripPrice = TripPriceSerializer(read_only=True)
+#     def create(self, validated_data):
+#         pass

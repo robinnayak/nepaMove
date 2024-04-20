@@ -17,12 +17,15 @@ from . import serializers
 from Driver.models import Driver
 from passenger.models import Passenger
 from . import models
-
-
+from .renderers import CustomJSONRenderer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 def index(request):
     return HttpResponse("hello world!!")
 
 class HomeView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self,request,*args,**kwargs):
         return Response({"msg":"home page!!"}, status=status.HTTP_200_OK)
 
@@ -32,6 +35,15 @@ def get_csrf_token(request):
     token = get_token(request)
     return JsonResponse({'csrfToken':request.META['CSRF_COOKIE'],'csrfToken1':token})
 
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
+
 # class UserView(APIView):
 #     def get(self,request,*args,**kwargs):
 #         user = models.CustomUser.objects.all()
@@ -39,6 +51,7 @@ def get_csrf_token(request):
 
 class RegistrationView(APIView):
     # permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    # renderer_classes = [CustomJSONRenderer]
     Licence_no = '123456789'
     phone_number = '12345608'
     address = "Jankapur, Nepal"
@@ -63,6 +76,8 @@ class RegistrationView(APIView):
                     driver =  Driver.objects.create(
                         user = user,
                         )
+                    if driver is not None:
+                        token = get_tokens_for_user(user)
                     print("driver",driver)
                 else:
                     passenger_group = Group.objects.get(name="passenger")
@@ -71,8 +86,12 @@ class RegistrationView(APIView):
                     passenger = Passenger.objects.create(
                         user = user,
                     )
+                    if passenger is not None:
+                        token = get_tokens_for_user(user)
+                        
                     print("passenger: ",passenger)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                msg = {"token":token, "data":serializer.data , "msg":"User registered successfully"}
+                return Response(msg, status=status.HTTP_201_CREATED)
             else:
                 return Response({"err":serializer.errors,"msg":"register as a driver"},status=status.HTTP_400_BAD_REQUEST)
         except Group.DoesNotExist:
@@ -83,6 +102,7 @@ class RegistrationView(APIView):
           
 
 class CustomLoginView(APIView):
+    # renderer_classes = [CustomJSONRenderer]
     def get(self,request,*args,**kwargs):
         return Response("welcome to login page",status=status.HTTP_200_OK)
     def post(self,request,*args,**kwargs):
@@ -93,10 +113,17 @@ class CustomLoginView(APIView):
             user = authenticate(username=username,password=password)
             if user:
                 login(request,user)
-                print("login successful!!!",user)
-            # print("data",serializer.data)
-            # print("username data",serializer.data['username'])
-            return Response({'msg':"login successful",'data':serializer.data},status=status.HTTP_200_OK)
+                token = get_tokens_for_user(user)
+                # print("login successful!!!",user)
+                # print("login successful!!!",user.get_username())
+                # print("login successful!!!",user.username)
+                
+                print("login successful!!!",request.user.username)
+                username = request.user.username
+                is_driver = request.user.is_driver
+                print("is_driver",is_driver)    
+                
+                return Response({'token':token,'msg':"login successful",'data':serializer.data,'username':username,'is_driver':is_driver},status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
