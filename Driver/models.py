@@ -180,8 +180,9 @@ class Booking(models.Model):
         self.tripprice.vehicle.save()
         
         
-        prefix = f"{self.passenger.user.username}{self.num_passengers}{self.tripprice.trip_price_id}"
-        self.booking_id = prefix.upper()
+        prefix = f"{self.passenger.user.username}_{self.num_passengers}_{self.tripprice.trip_price_id}"
+        timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
+        self.booking_id = f"{prefix}_{timestamp}".upper()
         super().save(*args,**kwargs)
         
         ticket_content = generate_ticket_content(self)

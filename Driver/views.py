@@ -430,3 +430,48 @@ class BookingDetail(APIView):
             return Response({"err":str(e)},status=status.HTTP_400_BAD_REQUEST)
         
         
+class TicketFilterView(APIView):
+    def get(self,request,*args,**kwargs):
+        username = kwargs.get('username')
+        print("username",username)  
+        print("is driver ",request.user.is_driver)
+        if request.user.is_driver:
+            # Driver code here
+            try:
+                driver = models.Driver.objects.get(user__username=username)
+                print("driver",driver)
+                ticket = models.Ticket.objects.filter(booking__tripprice__vehicle__driver=driver)
+                print(" driver ticket",ticket)
+                serializer = serializers.TicketSerializer(ticket,many=True)
+                try:
+                    if serializer.data:
+                        return Response({"msg":"Ticket Api","data":serializer.data},status=status.HTTP_200_OK)
+                    return Response({"msg":"Ticket Api","data":serializer.data},status=status.HTTP_200_OK)
+                except models.Ticket.DoesNotExist:
+                    return Response({"error":"No ticket found"},status=status.HTTP_404_NOT_FOUND)
+                except Exception as e:
+                    return Response({"error":str(e),"serializer_error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+
+                # Code for driver
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Passenger code here
+            try:
+                # Code for passenger
+                passenger = models.Passenger.objects.get(user__username=username)
+                ticket = models.Ticket.objects.filter(booking__passenger=passenger)
+                serializer = serializers.TicketSerializer(ticket,many=True)  
+                try:
+                    if serializer.data:
+                        return Response({"msg":"Ticket Api","data":serializer.data},status=status.HTTP_200_OK)
+                    return Response({"msg":"Ticket Api","data":serializer.data},status=status.HTTP_200_OK)
+                except models.Ticket.DoesNotExist:
+                    return Response({"error":"No ticket found"},status=status.HTTP_404_NOT_FOUND)
+                except Exception as e:
+                    return Response({"error":str(e),"serializer_error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+
+
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        

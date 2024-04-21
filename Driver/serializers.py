@@ -157,6 +157,7 @@ class BookingSerializer(serializers.ModelSerializer):
         
 
 class TicketSerializer(serializers.ModelSerializer):
+    booking = BookingSerializer(read_only=True)
     class Meta:
         model = models.Ticket
         fields = ['booking','ticket_file']

@@ -15,7 +15,7 @@ urlpatterns = [
     path("tripprice/filter/",views.TripPriceLocationFilter.as_view(), name="trip-price-filter"),
     path("trip/booking/",views.BookingView.as_view(), name="trip-booking"),
     path("trip/booking/<str:booking_id>/",views.BookingDetail.as_view(), name="trip-booking-detail"),
-    
+    path("trip/ticket/filter/<str:username>/",views.TicketFilterView.as_view(), name="trip-ticket-filter"),
     
     # path("vechile/test/",views.Test.as_view(),name="test"),
     # path('user/',views.UserView.as_view(),name="user"),
